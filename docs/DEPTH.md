@@ -14,6 +14,7 @@
 | M4 金额分摊 | 运行样例并复核证据 | `/api/allocations/calculate` / `/allocations` | `app/modules/m4_allocations/core.py` `app/modules/m4_allocations/service.py` | `tests/test_m4_allocations.py` |
 | M5 尾差裁决 | 运行样例并复核证据 | `/api/remainders/resolve` / `/remainders` | `app/modules/m5_remainders/core.py` `app/modules/m5_remainders/service.py` | `tests/test_m5_remainders.py` |
 | M6 批次复核 | 运行样例并复核证据 | `/api/export/allocations.csv` / `/runs` | `app/modules/m6_runs/core.py` `app/modules/m6_runs/service.py` | `tests/test_m6_runs.py` |
+| M7 模拟支付与撤回对账 | 建池建批次、模拟发送/回执/撤回/追回并核对头寸 | `/api/payments/positions` / `/payments` | `app/modules/m7_payments/core.py` `app/modules/m7_payments/store.py` `app/modules/m7_payments/service.py` | `tests/test_m7_payments.py` `tests/test_m7_api.py` |
 
         ## 陷阱登记
 
@@ -35,6 +36,9 @@
         - 输入记录数 = 有效记录数 + 隔离记录数 + 空记录数。
         - 核心数值或事件数在转换、判定和导出之间保持守恒。
         - 同一输入摘要重跑复用原运行编号，不增加结果行。
+        - M7 头寸守恒：`budget = available + occupied + paid - recovered`；待追回未到账不计入可用，跨批次占款不超预算。
+        - M7 支付端请求以指令编号为幂等键：超时/中断后重试先查受理并复用原请求，不产生第二笔扣款。
+        - M7 指令状态单调迁移，乱序或重复回执不倒退、不重复记账；全部状态变迁写入 `m7_events` 审计表。
 
         ## 已知不覆盖
 

@@ -1,0 +1,33 @@
+{% extends "base.html" %}{% block content %}
+<div class="grid module-7"><section class="panel panel--primary"><div class="panel__head"><h2>资金头寸对账</h2><span class="panel__meta">M7 · {{ data.status|default('EMPTY') }} · 本地模拟，不接真实银行</span></div><div class="panel__body panel__body--scroll">
+{% if data.positions %}
+<table class="ledger"><thead><tr><th>资金桶</th><th>金额（元）</th><th>说明</th></tr></thead><tbody>
+<tr><td>预算 budget</td><td class="num">{{ data.positions.budget }}</td><td>资金池总额度</td></tr>
+<tr><td>可用 available</td><td class="num">{{ data.positions.available }}</td><td>可继续占款（待追回未到账不释放）</td></tr>
+<tr><td>占用 occupied</td><td class="num">{{ data.positions.occupied }}</td><td>待付 + 已受理未回执</td></tr>
+<tr><td>实付 paid</td><td class="num">{{ data.positions.paid }}</td><td>累计实付，撤回不抹除</td></tr>
+<tr><td>待追回 recovery_pending</td><td class="num">{{ data.positions.recovery_pending }}</td><td>撤回后迟到成功回执</td></tr>
+<tr><td>已追回 recovered</td><td class="num">{{ data.positions.recovered }}</td><td>全额到账后释放回可用</td></tr>
+<tr><td>守恒校验 balanced</td><td class="num">{{ data.positions.balanced }}</td><td>{{ data.positions.invariant }}</td></tr>
+</tbody></table>
+{% else %}
+<p>尚无资金池。先调用 <code>POST /api/payments/pools</code> 建池，再创建分摊批次。</p>
+{% endif %}
+</div></section>
+<div class="stack"><section class="panel"><div class="panel__head"><h2>批次与状态分布</h2><span class="panel__meta">跨批次并发占款不超预算</span></div><div class="panel__body panel__body--scroll">
+{% if data.batches %}
+<table class="ledger"><thead><tr><th>batch_id</th><th>合计</th><th>占用</th><th>实付</th><th>待追回</th><th>作废</th></tr></thead><tbody>
+{% for b in data.batches %}<tr><td>{{ b.batch_id }}</td><td class="num">{{ b.total }}</td><td class="num">{{ b.occupied if b.occupied is defined else '—' }}</td><td class="num">{{ b.paid if b.paid is defined else '—' }}</td><td class="num">{{ b.recovery_pending if b.recovery_pending is defined else '—' }}</td><td class="num">{{ b.voided if b.voided is defined else '—' }}</td></tr>{% endfor %}
+</tbody></table>
+{% else %}<p>暂无批次。</p>{% endif %}
+</div></section><section class="panel"><div class="panel__head"><h2>接口入口</h2><span class="panel__meta">/api/payments/*</span></div><div class="panel__body"><pre class="result">POST /pools 建池
+POST /batches 建批次（M4 封顶 + M5 落分）
+POST /instructions/{id}/send 发送/重试支付
+GET  /instructions/{id}/bank-status 查受理
+POST /instructions/{id}/receipt 回执入账
+POST /withdraw 撤回作废/转待追回
+POST /instructions/{id}/recover 追回登记
+GET  /positions 头寸对账
+GET  /events 审计事件
+POST /scenarios 模拟场景 ok/reject/timeout/interrupt</pre></div></section></div></div>
+{% endblock %}
